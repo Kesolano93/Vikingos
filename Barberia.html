@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vikingos Barber Shop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cinzel Decorative', cursive;
+            background-color: white;
+            color: #a9a9a9;
+            text-align: center;
+        }
+        header { padding: 20px; }
+        header img { max-width: 250px; }
+        nav { margin: 20px 0; }
+        nav button {
+            padding: 15px 30px;
+            margin: 0 10px;
+            background: #a9a9a9;
+            color: black;
+            border: 2px solid #FFD700;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: background 0.3s, border-color 0.3s;
+        }
+        nav button:hover {
+            background: #d4af37;
+        }
+        section { padding: 20px; display: none; }
+        section.active { display: block; }
+        form { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; }
+        label { margin: 10px 5px 5px; }
+        input, select { padding: 10px; margin: 5px; width: 150px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 10px 20px; background: #a9a9a9; color: black; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #888888; }
+        table {
+            margin: 20px auto;
+            border-collapse: collapse;
+            width: 80%;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+        th { background-color: #f2f2f2; }
+        .message {
+            margin-top: 10px;
+            color: green;
+            display: none;
+        }
+        #admin-message {
+            color: green;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="https://mir-s3-cdn-cf.behance.net/project_modules/1400/85f55943050369.57e18dc5c4341.jpg" alt="Logo de Vikingos Barbería">
+    </header>
+
+    <nav>
+        <button onclick="showSection('inicio')">Inicio</button>
+        <button onclick="showSection('agendar')">Agendar Cita</button>
+        <button onclick="showSection('citas')">Citas Agendadas</button>
+        <button onclick="showSection('admin')">Administrador</button>
+        <button onclick="showSection('redes')">Redes Sociales</button>
+    </nav>
+
+    <section id="inicio" class="active">
+        <h2>Bienvenido a Vikingos Barber Shop</h2>
+        <p>Tu barbería de confianza.</p>
+    </section>
+
+    <section id="agendar">
+        <h2>Agendar Cita</h2>
+        <form id="appointment-form">
+            <label for="name">Nombre:</label>
+            <input type="text" id="name" required>
+            <label for="cell">Celular:</label>
+            <input type="tel" id="cell" required>
+            <label for="barber">Barbero:</label>
+            <select id="barber" required onchange="updateAvailableTimes(); updateAppointmentsList()">
+                <option value="" disabled selected>Seleccionar</option>
+                <option value="barbero1">Barbero 1</option>
+                <option value="barbero2">Barbero 2</option>
+                <option value="barbero3">Barbero 3</option>
+                <option value="barbero4">Barbero 4</option>
+            </select>
+            <label for="date">Fecha:</label>
+            <input type="date" id="date" required onchange="updateAvailableTimes(); updateAppointmentsList()">
+            <label for="time">Hora:</label>
+            <select id="time" required></select>
+            <button type="submit">Confirmar Cita</button>
+            <button type="button" onclick="showSection('inicio')">Atrás</button>
+        </form>
+        <div id="confirmation-message" class="message">Cita agendada con éxito.</div>
+    </section>
+
+    <section id="citas">
+        <h2>Citas Agendadas</h2>
+        <div>
+            <label for="filter-date">Filtrar por Fecha:</label>
+            <input type="date" id="filter-date" onchange="updateAppointmentsList()">
+            <label for="filter-barber">Filtrar por Barbero:</label>
+            <select id="filter-barber" onchange="updateAppointmentsList()">
+                <option value="">Seleccionar Barbero</option>
+                <option value="barbero1">Barbero 1</option>
+                <option value="barbero2">Barbero 2</option>
+                <option value="barbero3">Barbero 3</option>
+                <option value="barbero4">Barbero 4</option>
+            </select>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Celular</th>
+                    <th>Barbero</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th id="delete-header" style="display:none;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="appointments-list">
+                <tr>
+                    <td colspan="6">No hay citas agendadas.</td>
+                </tr>
+            </tbody>
+        </table>
+        <button onclick="showSection('inicio')">Atrás</button>
+    </section>
+
+    <section id="admin">
+        <h2>Administrador</h2>
+        <div id="admin-login-form" style="display: flex; justify-content: center;">
+            <label for="admin-user">Usuario:</label>
+            <input type="text" id="admin-user" required>
+            <label for="admin-pin">Pin:</label>
+            <input type="password" id="admin-pin" required>
+            <button id="login-button">Iniciar Sesión</button>
+        </div>
+        <div id="admin-message" class="message">Has iniciado sesión como Administrador.</div>
+        <button id="logout-button" style="display: none;" onclick="logout()">Cerrar Sesión</button>
+    </section>
+
+    <script>
+        let appointments = {};
+        let isAdminLoggedIn = false;
+
+        function showSection(sectionId) {
+            const sections = document.querySelectorAll('section');
+            sections.forEach(section => section.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+
+            // Reiniciar filtros al cambiar de sección
+            if (sectionId === 'citas') {
+                document.getElementById('filter-date').value = '';
+                document.getElementById('filter-barber').value = '';
+                updateAppointmentsList(); // No mostrar nada inicialmente
+            }
+        }
+
+        function updateAvailableTimes() {
+            const barber = document.getElementById('barber').value;
+            const date = document.getElementById('date').value;
+            const timeSelect = document.getElementById('time');
+            timeSelect.innerHTML = '';
+
+            if (barber && date) {
+                const reservedTimes = appointments[date] ? appointments[date].filter(a => a.barber === barber).map(a => a.time) : [];
+                for (let hour = 8; hour <= 21; hour++) {
+                    const time = hour.toString().padStart(2, '0') + ':00';
+                    if (!reservedTimes.includes(time)) {
+                        const option = document.createElement('option');
+                        option.value = time;
+                        option.textContent = time;
+                        timeSelect.appendChild(option);
+                    }
+                }
+            }
+        }
+
+        document.getElementById('appointment-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const barber = document.getElementById('barber').value;
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+            const name = document.getElementById('name').value;
+            const cell = document.getElementById('cell').value;
+
+            if (!appointments[date]) {
+                appointments[date] = [];
+            }
+            appointments[date].push({ name, barber, time, cell });
+            updateAvailableTimes();
+            document.getElementById('confirmation-message').style.display = 'block';
+
+            // Reiniciar todos los campos del formulario
+            document.getElementById('appointment-form').reset();
+            updateAvailableTimes();
+
+            setTimeout(() => {
+                document.getElementById('confirmation-message').style.display = 'none';
+            }, 4000);
+        });
+
+        document.getElementById('login-button').addEventListener('click', function() {
+            const user = document.getElementById('admin-user').value;
+            const pin = document.getElementById('admin-pin').value;
+            if (user === 'Master' && pin === '1215') {
+                isAdminLoggedIn = true;
+                document.getElementById('admin-message').textContent = 'Has iniciado sesión como Administrador';
+                document.getElementById('admin-message').style.display = 'block';
+                document.getElementById('admin-login-form').style.display = 'none';
+                document.getElementById('logout-button').style.display = 'inline';
+                document.getElementById('delete-header').style.display = 'table-cell';
+                updateAppointmentsList(); // No mostrar nada inicialmente
+            } else {
+                document.getElementById('admin-message').textContent = 'Usuario o PIN incorrecto';
+                document.getElementById('admin-message').style.display = 'block';
+            }
+        });
+
+        document.getElementById('filter-date').addEventListener('change', updateAppointmentsList);
+        document.getElementById('filter-barber').addEventListener('change', updateAppointmentsList);
+
+        function updateAppointmentsList() {
+            const appointmentList = document.getElementById('appointments-list');
+            appointmentList.innerHTML = '';
+
+            const filterDate = document.getElementById('filter-date').value;
+            const filterBarber = document.getElementById('filter-barber').value;
+
+            // Solo mostrar si se seleccionan ambos filtros
+            if (filterDate && filterBarber) {
+                let filteredAppointments = [];
+                for (const [date, appointmentsForDate] of Object.entries(appointments)) {
+                    appointmentsForDate.forEach(appointment => {
+                        if (filterDate === date && appointment.barber === filterBarber) {
+                            filteredAppointments.push({ ...appointment, date });
+                        }
+                    });
+                }
+
+                // Si no hay citas después de aplicar los filtros, mostrar mensaje
+                if (filteredAppointments.length === 0) {
+                    const noAppointmentsRow = document.createElement('tr');
+                    noAppointmentsRow.innerHTML = '<td colspan="6">No hay citas agendadas.</td>';
+                    appointmentList.appendChild(noAppointmentsRow);
+                    return;
+                }
+
+                // Ordenar las citas por hora
+                filteredAppointments.sort((a, b) => {
+                    const timeA = a.time.split(':').map(Number);
+                    const timeB = b.time.split(':').map(Number);
+                    return timeA[0] - timeB[0] || timeA[1] - timeB[1];
+                });
+
+                // Agregar las citas ordenadas a la tabla
+                filteredAppointments.forEach(appointment => {
+                    const listItem = document.createElement('tr');
+                    listItem.innerHTML = `
+                        <td>${appointment.name}</td>
+                        <td>${appointment.cell}</td>
+                        <td>${appointment.barber}</td>
+                        <td>${appointment.date}</td>
+                        <td>${appointment.time}</td>
+                    `;
+                    if (isAdminLoggedIn) {
+                        const deleteButton = document.createElement('button');
+                        deleteButton.textContent = 'Eliminar';
+                        deleteButton.onclick = () => deleteAppointment(appointment.date, appointment.time);
+                        const deleteCell = document.createElement('td');
+                        deleteCell.appendChild(deleteButton);
+                        listItem.appendChild(deleteCell);
+                    }
+                    appointmentList.appendChild(listItem);
+                });
+            } else {
+                // Si no hay ambos filtros, mostrar mensaje de "No hay citas agendadas."
+                const noAppointmentsRow = document.createElement('tr');
+                noAppointmentsRow.innerHTML = '<td colspan="6">No hay citas agendadas.</td>';
+                appointmentList.appendChild(noAppointmentsRow);
+            }
+        }
+
+        function deleteAppointment(date, time) {
+            const appointmentIndex = appointments[date].findIndex(appointment => appointment.time === time);
+            if (appointmentIndex > -1) {
+                appointments[date].splice(appointmentIndex, 1);
+                if (appointments[date].length === 0) {
+                    delete appointments[date];
+                }
+                updateAppointmentsList();
+                document.getElementById('admin-message').textContent = 'Cita eliminada con éxito';
+                document.getElementById('admin-message').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('admin-message').style.display = 'none';
+                }, 4000);
+            }
+        }
+
+        function logout() {
+            isAdminLoggedIn = false;
+            document.getElementById('admin-message').style.display = 'none';
+            document.getElementById('admin-login-form').style.display = 'flex';
+            document.getElementById('logout-button').style.display = 'none';
+            document.getElementById('delete-header').style.display = 'none';
+
+            // Mostrar solo la sección de inicio
+            const sections = document.querySelectorAll('section');
+            sections.forEach(section => section.classList.remove('active'));
+            document.getElementById('inicio').classList.add('active');
+        }
+    </script>
+</body>
+</html>
